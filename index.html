@@ -970,60 +970,77 @@ function showToast(msg, type='') {
 }
 
 // ══════════════════════════════════════════
-// YAHOO FINANCE VIA STOOQ (sin proxy, sin API key)
+// YAHOO FINANCE — RAPIDAPI (versión funcional)
 // ══════════════════════════════════════════
-async function fetchSinglePrice(ticker) {
-  const url = `https://stooq.com/q/l/?s=${ticker.toLowerCase()}.us&f=sd2t2ohlcv&h&e=csv`;
+const RAPIDAPI_KEY = '1f1a074f75msh519b89fd0e03c4ep172cc3jsnfe77f0a20dcd';
+const RAPIDAPI_HOST = 'apidojo-yahoo-finance-v1.p.rapidapi.com';
+
+async function fetchPrices(){
+  showToast('🔄 Actualizando precios desde Yahoo Finance...','');
+  document.getElementById('lastUpdate').textContent = 'Actualizando...';
+
   try {
-    const res = await fetch(url, {signal: AbortSignal.timeout(7000)});
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const text = await res.text();
-    const lines = text.trim().split('\n');
-    if (lines.length < 2) return null;
-    const parts = lines[1].split(',');
-    const close = parseFloat(parts[6]);
-    if (isNaN(close) || close <= 0) return null;
-    return Math.round(close * 100) / 100;
-  } catch(e) {
-    console.warn(`Stooq error ${ticker}:`, e.message);
-    return null;
-  }
-}
+    const symbols = positions.map(p => p.ticker).join(',');
+    const url = `https://apidojo-yahoo-finance-v1.p.rapidapi.com/market/v2/get-quotes?region=US&symbols=${encodeURIComponent(symbols)}`;
 
-async function fetchPrices() {
-  showToast('🔄 Actualizando precios...','');
-  document.getElementById('lastUpdate').textContent = 'Cargando precios...';
-  document.getElementById('lastUpdate').style.color = '#fbbf24';
-  let updated = 0;
-  for (const p of positions) {
-    const price = await fetchSinglePrice(p.ticker);
-    if (price) { p.currentPrice = price; updated++; }
-  }
-  render();
-  const now = new Date();
-  const ts = now.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
-  const ds = now.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'});
-  if (updated > 0) {
-    document.getElementById('lastUpdate').textContent = `✅ Actualizado: ${ds} ${ts} · ${updated}/${positions.length} tickers`;
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'x-rapidapi-key': RAPIDAPI_KEY,
+        'x-rapidapi-host': RAPIDAPI_HOST
+      }
+    });
+
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+
+    const quotes = data?.quoteResponse?.result || [];
+    let updated = 0;
+
+    quotes.forEach(q => {
+      const ticker = (q.symbol || '').replace(/\.[A-Z]+$/, '').toUpperCase();
+      const price = parseFloat(q.regularMarketPrice || 0);
+      if (!ticker || !price) return;
+      const p = positions.find(x => x.ticker === ticker);
+      if (p) {
+        p.currentPrice = Math.round(price * 100) / 100;
+        updated++;
+      }
+    });
+
+    render();
+
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'});
+    const dateStr = now.toLocaleDateString('es-AR', {day:'2-digit', month:'2-digit', year:'numeric'});
+    document.getElementById('lastUpdate').textContent = `✅ Actualizado: ${dateStr} ${timeStr} · ${updated}/${positions.length} tickers`;
     document.getElementById('lastUpdate').style.color = '#10b981';
-    showToast(`✅ ${updated} precios actualizados`,'success');
-  } else {
-    document.getElementById('lastUpdate').textContent = `⚠️ Sin precios en vivo — (${ds} ${ts})`;
+
+    if (updated === 0) {
+      showToast('⚠️ Sin precios en la respuesta. Revisá tu suscripción en RapidAPI.', 'error');
+    } else {
+      showToast(`✅ ${updated} precios actualizados`, 'success');
+    }
+
+  } catch(err) {
+    console.error('Yahoo Finance error:', err);
+    document.getElementById('lastUpdate').textContent = `❌ Error: ${err.message}`;
     document.getElementById('lastUpdate').style.color = '#f87171';
-    showToast('⚠️ No se obtuvieron precios — se muestran datos de referencia','error');
+    showToast(`❌ Error: ${err.message}`, 'error');
   }
 }
-function isMarketHours() {
-  const now = new Date(); const day = now.getUTCDay();
-  if (day===0||day===6) return false;
-  const m = now.getUTCHours()*60+now.getUTCMinutes();
-  return m >= 14*60+30 && m <= 21*60;
+
+function isMarketHours(){
+  const now = new Date();
+  const day = now.getUTCDay();
+  if(day===0||day===6) return false;
+  const utcMin = now.getUTCHours()*60+now.getUTCMinutes();
+  return utcMin >= 14*60+30 && utcMin <= 21*60;
 }
 
-// ══ INIT ══
 render();
 fetchPrices();
-setInterval(() => { if (isMarketHours()) fetchPrices(); }, 5*60*1000);
+setInterval(()=>{ if(isMarketHours()) fetchPrices(); }, 5*60*1000);
 </script>
 </body>
 </html>

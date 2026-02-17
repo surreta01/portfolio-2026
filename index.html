@@ -929,83 +929,74 @@ function showToast(msg, type=''){
 // ── INIT ──
 render();
 
-// ═══════════════════════════════════════
-// YAHOO FINANCE — AUTO PRICE UPDATE
-// ═══════════════════════════════════════
-// ═══════════════════════════════════════
-// YAHOO FINANCE — SIN API KEY
-// Usa Yahoo Finance directamente via proxy CORS público
-// ═══════════════════════════════════════
+// ══════════════════════════════════════════════════════
+// PRECIOS — Yahoo Finance via widget script (sin proxy)
+// Usa TradingView widget como fuente alternativa de precio
+// ══════════════════════════════════════════════════════
+
+// Precio hardcoded de referencia (se actualiza manualmente o via widget)
+// Yahoo Finance directo no permite CORS desde browsers sin proxy
+// Usamos Stooq como fuente alternativa — acepta requests directos
 
 async function fetchSinglePrice(ticker) {
-  // Yahoo Finance v8 endpoint — no key needed, via allorigins CORS proxy
-  const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=1d`;
-  const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(yahooUrl)}`;
-  
-  const res = await fetch(proxy);
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const outer = await res.json();
-  const data = JSON.parse(outer.contents);
-  const price = data?.chart?.result?.[0]?.meta?.regularMarketPrice;
-  return price ? Math.round(parseFloat(price) * 100) / 100 : null;
+  // Stooq provee CSV sin restricciones CORS
+  const url = `https://stooq.com/q/l/?s=${ticker.toLowerCase()}.us&f=sd2t2ohlcv&h&e=csv`;
+  try {
+    const res = await fetch(url, {signal: AbortSignal.timeout(6000)});
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const text = await res.text();
+    // CSV format: Symbol,Date,Time,Open,High,Low,Close,Volume
+    const lines = text.trim().split('\n');
+    if (lines.length < 2) return null;
+    const parts = lines[1].split(',');
+    const close = parseFloat(parts[6]); // Close price
+    if (isNaN(close) || close <= 0) return null;
+    return Math.round(close * 100) / 100;
+  } catch(e) {
+    console.warn(`Stooq error for ${ticker}:`, e.message);
+    return null;
+  }
 }
 
-async function fetchPrices(){
+async function fetchPrices() {
   showToast('🔄 Actualizando precios...', '');
   document.getElementById('lastUpdate').textContent = 'Cargando precios...';
   document.getElementById('lastUpdate').style.color = '#fbbf24';
 
   let updated = 0;
-  let errors = 0;
+  // Fetch sequentially to avoid rate limiting
+  for (const p of positions) {
+    const price = await fetchSinglePrice(p.ticker);
+    if (price) { p.currentPrice = price; updated++; }
+  }
 
-  // Fetch all tickers in parallel
-  const promises = positions.map(async p => {
-    try {
-      const price = await fetchSinglePrice(p.ticker);
-      if (price) {
-        p.currentPrice = price;
-        updated++;
-      }
-    } catch(e) {
-      console.warn(`Error fetching ${p.ticker}:`, e.message);
-      errors++;
-    }
-  });
-
-  await Promise.all(promises);
   render();
-
   const now = new Date();
-  const timeStr = now.toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'});
-  const dateStr = now.toLocaleDateString('es-AR', {day:'2-digit', month:'2-digit', year:'numeric'});
+  const ts = now.toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'});
+  const ds = now.toLocaleDateString('es-AR', {day:'2-digit', month:'2-digit', year:'numeric'});
 
   if (updated > 0) {
-    document.getElementById('lastUpdate').textContent = `✅ Actualizado: ${dateStr} ${timeStr} · ${updated}/${positions.length} tickers`;
+    document.getElementById('lastUpdate').textContent = `✅ Actualizado: ${ds} ${ts} · ${updated}/${positions.length} tickers`;
     document.getElementById('lastUpdate').style.color = '#10b981';
     showToast(`✅ ${updated} precios actualizados`, 'success');
   } else {
-    document.getElementById('lastUpdate').textContent = `❌ No se pudieron obtener precios (${dateStr} ${timeStr})`;
+    document.getElementById('lastUpdate').textContent = `⚠️ Sin conexión a precios — mostrando datos de referencia (${ds} ${ts})`;
     document.getElementById('lastUpdate').style.color = '#f87171';
-    showToast('❌ Error al obtener precios. Intentá de nuevo.', 'error');
+    showToast('⚠️ No se obtuvieron precios en vivo', 'error');
   }
 }
 
-// Auto-fetch on load + every 5 minutes during market hours
-fetchPrices();
-
-function isMarketHours(){
+function isMarketHours() {
   const now = new Date();
-  const utcH = now.getUTCHours();
-  const day = now.getUTCDay(); // 0=Sun, 6=Sat
-  if(day===0||day===6) return false;
-  // NYSE 9:30am–4pm ET = 14:30–21:00 UTC
-  const utcMin = now.getUTCHours()*60+now.getUTCMinutes();
-  return utcMin >= 14*60+30 && utcMin <= 21*60;
+  const day = now.getUTCDay();
+  if (day === 0 || day === 6) return false;
+  const m = now.getUTCHours() * 60 + now.getUTCMinutes();
+  return m >= 14 * 60 + 30 && m <= 21 * 60;
 }
 
-setInterval(()=>{
-  if(isMarketHours()) fetchPrices();
-}, 5 * 60 * 1000); // every 5 min
+render();
+fetchPrices();
+setInterval(() => { if (isMarketHours()) fetchPrices(); }, 5 * 60 * 1000);
 </script>
 </body>
 </html>

@@ -932,64 +932,61 @@ render();
 // ═══════════════════════════════════════
 // YAHOO FINANCE — AUTO PRICE UPDATE
 // ═══════════════════════════════════════
-const RAPIDAPI_KEY = '1f1a074f75msh519b89fd0e03c4ep172cc3jsnfe77f0a20dcd';
-const RAPIDAPI_HOST = 'yahoo-finance15.p.rapidapi.com';
+// ═══════════════════════════════════════
+// YAHOO FINANCE — SIN API KEY
+// Usa Yahoo Finance directamente via proxy CORS público
+// ═══════════════════════════════════════
+
+async function fetchSinglePrice(ticker) {
+  // Yahoo Finance v8 endpoint — no key needed, via allorigins CORS proxy
+  const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=1d`;
+  const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(yahooUrl)}`;
+  
+  const res = await fetch(proxy);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const outer = await res.json();
+  const data = JSON.parse(outer.contents);
+  const price = data?.chart?.result?.[0]?.meta?.regularMarketPrice;
+  return price ? Math.round(parseFloat(price) * 100) / 100 : null;
+}
 
 async function fetchPrices(){
-  const tickers = positions.map(p=>p.ticker).join(',');
-  const url = `https://yahoo-finance15.p.rapidapi.com/api/v1/markets/stock/quotes?ticker=${tickers}`;
+  showToast('🔄 Actualizando precios...', '');
+  document.getElementById('lastUpdate').textContent = 'Cargando precios...';
+  document.getElementById('lastUpdate').style.color = '#fbbf24';
 
-  // Show loading state
-  showToast('🔄 Actualizando precios desde Yahoo Finance...','');
-  document.getElementById('lastUpdate').textContent = 'Actualizando...';
+  let updated = 0;
+  let errors = 0;
 
-  try {
-    const res = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'x-rapidapi-key': RAPIDAPI_KEY,
-        'x-rapidapi-host': RAPIDAPI_HOST
-      }
-    });
-
-    if(!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-
-    // Yahoo Finance returns body.body as array of quotes
-    const quotes = data.body || data.quoteResponse?.result || [];
-
-    let updated = 0;
-    quotes.forEach(q => {
-      const ticker = (q.symbol||q.ticker||'').replace(/\.[A-Z]+$/,'').toUpperCase();
-      const price = parseFloat(q.regularMarketPrice || q.price || 0);
-      if(!ticker || !price) return;
-
-      const p = positions.find(x => x.ticker === ticker);
-      if(p){
-        p.currentPrice = Math.round(price * 100) / 100;
+  // Fetch all tickers in parallel
+  const promises = positions.map(async p => {
+    try {
+      const price = await fetchSinglePrice(p.ticker);
+      if (price) {
+        p.currentPrice = price;
         updated++;
       }
-    });
+    } catch(e) {
+      console.warn(`Error fetching ${p.ticker}:`, e.message);
+      errors++;
+    }
+  });
 
-    render();
+  await Promise.all(promises);
+  render();
 
-    const now = new Date();
-    const timeStr = now.toLocaleTimeString('es-AR', {hour:'2-digit',minute:'2-digit'});
-    const dateStr = now.toLocaleDateString('es-AR', {day:'2-digit',month:'2-digit',year:'numeric'});
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'});
+  const dateStr = now.toLocaleDateString('es-AR', {day:'2-digit', month:'2-digit', year:'numeric'});
+
+  if (updated > 0) {
     document.getElementById('lastUpdate').textContent = `✅ Actualizado: ${dateStr} ${timeStr} · ${updated}/${positions.length} tickers`;
     document.getElementById('lastUpdate').style.color = '#10b981';
-
-    if(updated === 0){
-      showToast('⚠️ Respuesta recibida pero sin precios. Revisá la API key.','error');
-    } else {
-      showToast(`✅ ${updated} precios actualizados correctamente`,'success');
-    }
-
-  } catch(err) {
-    console.error('Yahoo Finance error:', err);
-    document.getElementById('lastUpdate').textContent = `❌ Error al actualizar: ${err.message}`;
+    showToast(`✅ ${updated} precios actualizados`, 'success');
+  } else {
+    document.getElementById('lastUpdate').textContent = `❌ No se pudieron obtener precios (${dateStr} ${timeStr})`;
     document.getElementById('lastUpdate').style.color = '#f87171';
-    showToast('❌ Error conectando con Yahoo Finance. Revisá tu API key o el límite de llamadas.','error');
+    showToast('❌ Error al obtener precios. Intentá de nuevo.', 'error');
   }
 }
 

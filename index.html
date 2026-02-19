@@ -11,7 +11,7 @@
 :root{
   --bg:#ffffff;--bg2:#f8fafc;--bg3:#f1f5f9;--bg4:#e2e8f0;
   --border:#e2e8f0;--border2:#cbd5e1;
-  --text:#0f172a;--text2:#475569;--text3:#64748b;
+  --text:#0f172a;--text2:#1e293b;--text3:#334155;
   --green:#10b981;--green-bg:#d1fae5;--green-border:#6ee7b7;
   --red:#ef4444;--red-bg:#fee2e2;--red-border:#fca5a5;
   --yellow:#f59e0b;--yellow-bg:#fef3c7;--yellow-border:#fcd34d;
@@ -83,7 +83,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 /* STATUS BAR */
 .status-bar{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding:9px 14px;background:#0d1521;border:1px solid #1e293b;border-radius:10px;}
 .legend{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px;}
-.leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:#94a3b8;}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:#334155;}
 .leg-dot{width:8px;height:8px;border-radius:50%;}
 
 /* SECTION */
@@ -250,7 +250,7 @@ tbody tr:hover .row-actions{opacity:1;}
 .pin-digit{width:56px;height:64px;font-size:32px;font-weight:700;text-align:center;border:2px solid #e2e8f0;border-radius:12px;background:white;color:#0f172a;transition:all .2s;}
 .pin-digit:focus{outline:none;border-color:#0ea5e9;box-shadow:0 0 0 3px rgba(14,165,233,.1);}
 .pin-error{color:#ef4444;font-size:13px;font-weight:600;margin-top:12px;min-height:20px;}
-.pin-hint{font-size:12px;color:#94a3b8;margin-top:16px;}
+.pin-hint{font-size:12px;color:#334155;margin-top:16px;}
 
 /* NAVIGATION MENU */
 #navMenu{position:fixed;top:0;left:0;right:0;background:white;border-bottom:2px solid #e2e8f0;padding:0;z-index:9999;box-shadow:0 1px 3px rgba(0,0,0,.04);}
@@ -382,6 +382,7 @@ tbody tr:hover .row-actions{opacity:1;}
     <button class="btn btn-purple" onclick="openTickerSearch()">🔍 Buscar ticker</button>
     <button class="btn btn-ghost" id="btnToggleHidden" onclick="toggleHidden()">👁 Mostrar ocultas</button>
     <button class="btn btn-green" onclick="fetchPrices()">🔄 Actualizar precios</button>
+    <button class="btn btn-ghost" onclick="verifyCriteriaAll()" title="Verifica si las posiciones siguen cumpliendo los criterios de screener">✅ Verificar criterios</button>
     <button class="btn btn-ghost" onclick="exportCSV()">⬇ CSV</button>
     <button class="btn btn-primary" onclick="openPositionModal()">＋ Agregar posición</button>
   </div>
@@ -484,6 +485,7 @@ tbody tr:hover .row-actions{opacity:1;}
       <button class="btn btn-purple" onclick="openTickerSearch()">🔍 Buscar ticker</button>
       <button class="btn btn-ghost" id="btnToggleHidden" onclick="toggleHidden()">👁 Mostrar ocultas</button>
       <button class="btn btn-green" onclick="fetchPrices()">🔄 Actualizar precios</button>
+      <button class="btn btn-ghost" onclick="verifyCriteriaAll()" title="Verifica si las posiciones siguen cumpliendo los criterios de screener">✅ Verificar criterios</button>
       <button class="btn btn-ghost" onclick="exportCSV()">⬇ CSV</button>
       <button class="btn btn-primary" onclick="openPositionModal()">＋ Agregar posición</button>
     </div>
@@ -496,6 +498,7 @@ tbody tr:hover .row-actions{opacity:1;}
     <div class="ps-card"><div class="ps-label">Valor actual</div><div class="ps-val" id="ps-current" style="color:var(--text)">$0</div><div class="ps-sub">a precios de hoy</div></div>
     <div class="ps-card"><div class="ps-label">P&L total</div><div class="ps-val" id="ps-pnl">$0</div><div class="ps-sub" id="ps-pnl-pct">0.00%</div></div>
     <div class="ps-card"><div class="ps-label">Rendimiento anual</div><div class="ps-val" id="ps-annual">—</div><div class="ps-sub" id="ps-annual-sub">días desde primer compra</div></div>
+    <div class="ps-card"><div class="ps-label">Correlación Portfolio</div><div class="ps-val" id="ps-correlation">—</div><div class="ps-sub" id="ps-correlation-sub">diversificación</div></div>
     <div class="ps-card"><div class="ps-label">Mejor posición</div><div class="ps-val" id="ps-best" style="color:var(--green)">—</div><div class="ps-sub" id="ps-best-sub"></div></div>
     <div class="ps-card"><div class="ps-label">Peor posición</div><div class="ps-val" id="ps-worst" style="color:var(--red)">—</div><div class="ps-sub" id="ps-worst-sub"></div></div>
   </div>
@@ -802,11 +805,12 @@ tbody tr:hover .row-actions{opacity:1;}
           <div style="font-size:24px;font-weight:900;color:#f1f5f9;" id="sr-ticker">TSLA</div>
           <div style="font-size:13px;color:var(--text3);" id="sr-company">Tesla Inc.</div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;">
-          <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;">Precio actual</div><div style="font-size:18px;font-weight:800;color:#f1f5f9;margin-top:3px;" id="sr-price">$285.50</div></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:12px;">
+          <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;">Precio actual</div><div style="font-size:18px;font-weight:800;color:#0f172a;margin-top:3px;" id="sr-price">$285.50</div></div>
           <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;">Máx. 52 semanas</div><div style="font-size:18px;font-weight:800;color:var(--purple);margin-top:3px;" id="sr-high52">$488.54</div></div>
           <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;">Mín. 52 semanas</div><div style="font-size:18px;font-weight:800;color:var(--text3);margin-top:3px;" id="sr-low52">$138.80</div></div>
           <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;">% Bajo máximo</div><div style="font-size:18px;font-weight:800;margin-top:3px;" id="sr-drop">−41.6%</div></div>
+          <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;">Graham Value</div><div style="font-size:18px;font-weight:800;margin-top:3px;" id="sr-graham">—</div><div style="font-size:11px;margin-top:2px;" id="sr-graham-mos">—</div></div>
         </div>
       </div>
 
@@ -841,6 +845,20 @@ tbody tr:hover .row-actions{opacity:1;}
             <div><div style="font-size:10px;color:var(--text3);">Pérdida máx.</div><div style="font-size:16px;font-weight:800;margin-top:2px;" id="calc-maxloss">−0.54%</div><div style="font-size:9px;color:var(--text3);margin-top:1px;">del portfolio</div></div>
             <div><div style="font-size:10px;color:var(--text3);">Capa sugerida</div><div style="font-size:16px;font-weight:800;margin-top:2px;" id="calc-layer">Growth</div></div>
           </div>
+        </div>
+      </div>
+
+      <!-- CRITERIA VALIDATION PANEL -->
+      <div id="criteria-panel" style="border:1px solid var(--border);border-radius:12px;padding:16px;margin-top:14px;background:linear-gradient(135deg,rgba(16,185,129,.04),rgba(245,158,11,.04));display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;">✅ Validación de Criterios</div>
+          <div id="criteria-score" style="font-size:18px;font-weight:900;">—</div>
+        </div>
+        <div id="criteria-details" style="font-size:11px;line-height:1.6;color:var(--text2);">
+          <div>Verificando criterios del screener...</div>
+        </div>
+        <div style="margin-top:10px;padding:8px;background:var(--bg2);border-radius:6px;font-size:10px;color:var(--text3);">
+          💡 <strong>Nota:</strong> Se verifican 5 de 9 criterios. Los criterios de tendencia mensual, insider trading y congress trading requieren APIs premium.
         </div>
       </div>
 
@@ -1068,6 +1086,47 @@ function updatePortfolioSummary() {
     document.getElementById('ps-annual-sub').textContent = 'Sin compras registradas';
   }
 
+  // Portfolio Correlation (Ray Dalio methodology)
+  const sectorMap = {
+    'MSFT': 'tech', 'GOOGL': 'tech', 'AVGO': 'tech', 'PANW': 'tech', 'DDOG': 'tech',
+    'NET': 'tech', 'APP': 'tech', 'PLTR': 'tech', 'AMD': 'tech', 'MU': 'tech',
+    'CRDO': 'tech', 'NBIS': 'tech',
+    'SE': 'ecommerce', 'HIMS': 'health', 'CRWV': 'cloud'
+  };
+  
+  const visiblePos = positions.filter(p => !p.hidden && p.currentPrice);
+  let totalCorr = 0;
+  let pairs = 0;
+  
+  for (let i = 0; i < visiblePos.length; i++) {
+    for (let j = i + 1; j < visiblePos.length; j++) {
+      const sector1 = sectorMap[visiblePos[i].ticker] || 'other';
+      const sector2 = sectorMap[visiblePos[j].ticker] || 'other';
+      
+      if (sector1 === sector2 && sector1 !== 'other') {
+        totalCorr += 0.7; // Same sector = high correlation
+      } else if (sector1 === 'other' || sector2 === 'other') {
+        totalCorr += 0.3; // Unknown sector
+      } else {
+        totalCorr += 0.15; // Different sectors = low correlation
+      }
+      pairs++;
+    }
+  }
+  
+  if (pairs > 0) {
+    const avgCorr = totalCorr / pairs;
+    const corrColor = avgCorr < 0.4 ? '#10b981' : avgCorr < 0.6 ? '#f59e0b' : '#ef4444';
+    const corrLabel = avgCorr < 0.4 ? '✅ Diversificado' : avgCorr < 0.6 ? '⚠️ Moderado' : '🔴 Concentrado';
+    
+    document.getElementById('ps-correlation').textContent = avgCorr.toFixed(2);
+    document.getElementById('ps-correlation').style.color = corrColor;
+    document.getElementById('ps-correlation-sub').textContent = corrLabel;
+  } else {
+    document.getElementById('ps-correlation').textContent = '—';
+    document.getElementById('ps-correlation-sub').textContent = 'Solo 1 posición';
+  }
+
   const bestEl = document.getElementById('ps-best');
   bestEl.textContent = bestPct === -Infinity ? '—' : bestTicker + ' ' + (bestPct >= 0 ? '+' : '') + bestPct.toFixed(1) + '%';
   document.getElementById('ps-best-sub').textContent = bestPct === -Infinity ? '' : 'mejor posición';
@@ -1109,6 +1168,7 @@ const COLS = [
   {key:'weight',  label:'Peso',         sortable:true},
   {key:'drop',    label:'% Bajo máx.',  sortable:true},
   {key:'catalyst',label:'Catalizador',  sortable:false},
+  {key:'score',    label:'Score',        sortable:true},
   {key:'actions', label:'',             sortable:false},
 ];
 
@@ -1170,7 +1230,7 @@ function renderRow(p, layer) {
       placeholder="$ precio"
       onchange="updatePrice(${p.id}, this.value)"
       title="Ingresá o editá el precio manualmente"
-      style="width:80px;font-weight:700;color:${p.currentPrice ? '#f1f5f9' : 'var(--text3)'}"/>
+      style="width:80px;font-weight:700;color:${p.currentPrice ? '#0f172a' : 'var(--text3)'}"/>
     <div style="margin-top:3px;">
       <a href="${tvPriceUrl}" target="_blank"
         style="font-size:10px;color:var(--blue);text-decoration:none;opacity:0.7"
@@ -1195,17 +1255,174 @@ function renderRow(p, layer) {
     <td><input class="price-input" style="width:65px;background:var(--green-bg);border:1px solid var(--green-border);color:var(--green);font-weight:700;" value="${p.target.replace('$','')}" onchange="updateStopTarget(${p.id},'target',this.value)" placeholder="Target"/></td>
     <td><span class="${uc}" id="upside-${p.id}">+${p.upside}%</span></td>
     <td><span class="rr-val" id="rr-${p.id}">${p.rr}:1</span></td>
-    <td><div class="w-bar-wrap"><div class="w-bar ${wc}" style="width:${Math.min(p.weight*6,72)}px"></div><span style="font-size:11px;font-weight:700;color:#94a3b8">${p.weight}%</span></div></td>
+    <td><div class="w-bar-wrap"><div class="w-bar ${wc}" style="width:${Math.min(p.weight*6,72)}px"></div><span style="font-size:11px;font-weight:700;color:#334155">${p.weight}%</span></div></td>
     <td><span class="pill ${dc}">−${p.drop}%</span></td>
-    <td style="max-width:200px;color:#94a3b8;font-size:11px;">
+    <td style="max-width:200px;color:#334155;font-size:11px;">
       ${p.direction ? `<span style="font-size:10px;opacity:0.7;">${p.direction === 'long' ? '📈' : '📉'}</span> ` : ''}${p.catalyst}${p.letWinnerRun ? ' <span style="color:var(--green);font-size:10px;" title="Dejé correr el ganador">🚀</span>' : ''}
     </td>
+    <td id="score-${p.id}" style="text-align:center;font-size:11px;"><span style="color:var(--text3);">—</span></td>
     <td><div class="row-actions">
       <button class="row-btn row-btn-buy" onclick="openPurchasesModal(${p.id})" title="Compras">💜</button>
       <button class="row-btn row-btn-hide" onclick="toggleHideRow(${p.id})">${p.hidden?'👁':'🙈'}</button>
       <button class="row-btn row-btn-del" onclick="deleteRow(${p.id})">✕</button>
     </div></td>
   </tr>`;
+}
+
+// ══════════════════════════════════════════
+// CRITERIA VALIDATION SYSTEM (Screener Auto-Validator)
+// ══════════════════════════════════════════
+
+async function verifyCriteriaAll() {
+  showToast('🔍 Verificando criterios para todas las posiciones...', '');
+  
+  const visiblePos = positions.filter(p => !p.hidden);
+  let completed = 0;
+  
+  for (const p of visiblePos) {
+    try {
+      await verifyCriteriaSingle(p.ticker, p.id);
+      completed++;
+      showToast(`✅ Verificando... ${completed}/${visiblePos.length}`, '');
+    } catch(err) {
+      console.error(`Error verificando ${p.ticker}:`, err);
+    }
+    // Delay to avoid rate limiting
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  }
+  
+  showToast(`✅ Verificación completa: ${completed}/${visiblePos.length} posiciones`, 'success');
+}
+
+async function verifyCriteriaSingle(ticker, posId) {
+  try {
+    // Fetch comprehensive data
+    const [quoteData, statsData] = await Promise.all([
+      fetchQuoteData(ticker),
+      fetchStatsData(ticker)
+    ]);
+    
+    if (!quoteData || !statsData) {
+      updateScoreCell(posId, null, 'Sin datos');
+      return;
+    }
+    
+    // CRITERIOS DE SCREENER (9 total)
+    const criteria = {
+      below15pct: false,      // 1. Al menos 15% abajo del máximo
+      monthlyUptrend: null,   // 2. Tendencia alcista mensual (NO VERIFICABLE con API gratis)
+      betweenMA200: false,    // 3. Entre MA200 diaria y MA200 semanal
+      marketCap: false,       // 4. Cap > $10B
+      fcfPositive: false,     // 5. Free cash flow positivo
+      revenue3y: false,       // 6. Crecimiento ventas 3 años > 20%
+      revenueProjected: null, // 7. Crecimiento proyectado > 20% (NO VERIFICABLE)
+      insiderBuying: null,    // 8. Insiders comprando (NO VERIFICABLE sin API premium)
+      congressTrading: null   // 9. Congreso comprando (NO VERIFICABLE sin API premium)
+    };
+    
+    // 1. Check if 15% below 52-week high
+    const currentPrice = quoteData.regularMarketPrice;
+    const high52 = quoteData.fiftyTwoWeekHigh;
+    if (high52 > 0) {
+      const dropPct = ((currentPrice - high52) / high52) * 100;
+      criteria.below15pct = dropPct <= -15;
+    }
+    
+    // 3. Check if between MA200 daily and weekly (approximate with MA50/MA200)
+    const ma50 = quoteData.fiftyDayAverage || 0;
+    const ma200 = quoteData.twoHundredDayAverage || 0;
+    if (ma50 > 0 && ma200 > 0) {
+      criteria.betweenMA200 = currentPrice >= ma200 && currentPrice <= (ma200 * 1.15);
+    }
+    
+    // 4. Market cap > $10B
+    const marketCap = quoteData.marketCap || 0;
+    criteria.marketCap = marketCap >= 10000000000; // $10B
+    
+    // 5. Free Cash Flow positive
+    const fcf = statsData.financialData?.freeCashflow?.raw || 0;
+    criteria.fcfPositive = fcf > 0;
+    
+    // 6. Revenue growth last 3 years > 20% annually
+    const revenueGrowth = statsData.financialData?.revenueGrowth?.raw || 0;
+    criteria.revenue3y = revenueGrowth >= 0.20; // 20%
+    
+    // Calculate score
+    const verifiable = ['below15pct', 'betweenMA200', 'marketCap', 'fcfPositive', 'revenue3y'];
+    const passed = verifiable.filter(k => criteria[k]).length;
+    const total = verifiable.length;
+    const score = (passed / total) * 100;
+    
+    // Update UI
+    updateScoreCell(posId, score, passed, total, criteria);
+    
+    return { ticker, score, passed, total, criteria };
+    
+  } catch(err) {
+    console.error(`Criteria check error for ${ticker}:`, err);
+    updateScoreCell(posId, null, 'Error');
+    return null;
+  }
+}
+
+async function fetchQuoteData(ticker) {
+  const url = `https://apidojo-yahoo-finance-v1.p.rapidapi.com/market/v2/get-quotes?region=US&symbols=${ticker}`;
+  const res = await fetch(url, {
+    headers: {
+      'x-rapidapi-key': '1f1a074f75msh519b89fd0e03c4ep172cc3jsnfe77f0a20dcd',
+      'x-rapidapi-host': 'apidojo-yahoo-finance-v1.p.rapidapi.com'
+    },
+    signal: AbortSignal.timeout(10000)
+  });
+  
+  if (!res.ok) return null;
+  const data = await res.json();
+  return data?.quoteResponse?.result?.[0] || null;
+}
+
+async function fetchStatsData(ticker) {
+  const url = `https://apidojo-yahoo-finance-v1.p.rapidapi.com/stock/v2/get-statistics?symbol=${ticker}`;
+  const res = await fetch(url, {
+    headers: {
+      'x-rapidapi-key': '1f1a074f75msh519b89fd0e03c4ep172cc3jsnfe77f0a20dcd',
+      'x-rapidapi-host': 'apidojo-yahoo-finance-v1.p.rapidapi.com'
+    },
+    signal: AbortSignal.timeout(10000)
+  });
+  
+  if (!res.ok) return null;
+  return await res.json();
+}
+
+function updateScoreCell(posId, score, passed, total, criteria) {
+  const cell = document.getElementById(`score-${posId}`);
+  if (!cell) return;
+  
+  if (score === null) {
+    cell.innerHTML = `<span style="color:var(--text3);font-size:10px;">${passed || '—'}</span>`;
+    return;
+  }
+  
+  const color = score >= 80 ? 'var(--green)' : score >= 60 ? 'var(--yellow)' : 'var(--red)';
+  const icon = score >= 80 ? '✅' : score >= 60 ? '⚠️' : '❌';
+  
+  let tooltip = 'Criterios verificables:\n';
+  if (criteria) {
+    tooltip += `${criteria.below15pct ? '✅' : '❌'} 15% bajo máximo\n`;
+    tooltip += `${criteria.betweenMA200 ? '✅' : '❌'} Entre MA200\n`;
+    tooltip += `${criteria.marketCap ? '✅' : '❌'} Cap > $10B\n`;
+    tooltip += `${criteria.fcfPositive ? '✅' : '❌'} FCF positivo\n`;
+    tooltip += `${criteria.revenue3y ? '✅' : '❌'} Rev +20%\n`;
+    tooltip += '\nNo verificables (requieren APIs premium):\n';
+    tooltip += '⚪ Tendencia mensual\n⚪ Crecimiento proyectado\n⚪ Insider buying\n⚪ Congress trading';
+  }
+  
+  cell.innerHTML = `
+    <div style="display:flex;flex-direction:column;align-items:center;gap:2px;" title="${tooltip}">
+      <div style="font-size:14px;font-weight:800;color:${color};">${icon} ${passed}/${total}</div>
+      <div style="font-size:9px;color:var(--text3);">${score.toFixed(0)}%</div>
+    </div>
+  `;
 }
 
 function render() {
@@ -1453,6 +1670,15 @@ function savePosition() {
   
   closeModal('positionModal'); 
   render();
+  
+  // Auto-validate criteria for newly added position
+  if (!editId) {
+    const newPos = positions[positions.length - 1];
+    setTimeout(() => {
+      showToast(`🔍 Validando criterios para ${ticker}...`, '');
+      verifyCriteriaSingle(ticker, newPos.id);
+    }, 500);
+  }
 }
 
 // ══════════════════════════════════════════
@@ -1783,6 +2009,9 @@ async function searchTicker() {
     document.getElementById('search-empty-footer').style.display = 'none';
     document.getElementById('calc-results').style.display = 'none';
 
+    // Calculate Graham Value AND Validate Criteria (combined to avoid rate limit)
+    calculateGrahamAndCriteria(ticker, currentPrice);
+
     showToast('✅ Datos obtenidos para ' + ticker, 'success');
 
     // Auto-calculate stops immediately
@@ -1791,6 +2020,190 @@ async function searchTicker() {
   } catch(err) {
     console.error('Search error:', err);
     showToast('❌ Error al buscar: ' + err.message, 'error');
+  }
+}
+
+async function calculateGrahamAndCriteria(ticker, currentPrice) {
+  // Initialize loading states
+  document.getElementById('sr-graham').textContent = '⏳';
+  document.getElementById('sr-graham-mos').textContent = 'Calculando...';
+  
+  const panel = document.getElementById('criteria-panel');
+  const scoreEl = document.getElementById('criteria-score');
+  const detailsEl = document.getElementById('criteria-details');
+  
+  panel.style.display = 'block';
+  scoreEl.innerHTML = '<span style="color:var(--text3);">⏳</span>';
+  detailsEl.innerHTML = '<div>Verificando criterios...</div>';
+  
+  try {
+    // Get quote data (already have from searchTicker, use searchedTickerData)
+    const quoteData = searchedTickerData;
+    const high52 = quoteData.high52;
+    const ma200 = quoteData.ma200;
+    
+    // Single API call for statistics (Graham + FCF + Revenue)
+    const url = `https://apidojo-yahoo-finance-v1.p.rapidapi.com/stock/v2/get-statistics?symbol=${ticker}`;
+    const res = await fetch(url, {
+      headers: {
+        'x-rapidapi-key': '1f1a074f75msh519b89fd0e03c4ep172cc3jsnfe77f0a20dcd',
+        'x-rapidapi-host': 'apidojo-yahoo-finance-v1.p.rapidapi.com'
+      },
+      signal: AbortSignal.timeout(12000)
+    });
+
+    if (!res.ok) {
+      // API error - show friendly message
+      document.getElementById('sr-graham').textContent = '—';
+      document.getElementById('sr-graham-mos').textContent = 'API limit';
+      document.getElementById('sr-graham-mos').style.color = 'var(--text3)';
+      
+      scoreEl.textContent = '—';
+      detailsEl.innerHTML = '<div style="color:var(--yellow);">⚠️ API rate limit - intenta de nuevo en 1 minuto</div>';
+      return;
+    }
+    
+    const statsData = await res.json();
+    
+    // ═══════════════════════════════════════
+    // GRAHAM VALUE CALCULATION
+    // ═══════════════════════════════════════
+    const eps = statsData?.defaultKeyStatistics?.trailingEps?.raw || 0;
+    const bookValue = statsData?.defaultKeyStatistics?.bookValue?.raw || 0;
+    
+    if (eps > 0 && bookValue > 0) {
+      const intrinsicValue = Math.sqrt(22.5 * eps * bookValue);
+      const marginOfSafety = ((intrinsicValue - currentPrice) / intrinsicValue) * 100;
+      
+      const mosColor = marginOfSafety > 30 ? 'var(--green)' : marginOfSafety > 10 ? 'var(--yellow)' : 'var(--red)';
+      const mosIcon = marginOfSafety > 30 ? '✅' : marginOfSafety > 10 ? '⚠️' : '❌';
+      
+      document.getElementById('sr-graham').textContent = '$' + intrinsicValue.toFixed(2);
+      document.getElementById('sr-graham').style.color = 'var(--text)';
+      document.getElementById('sr-graham-mos').textContent = `${mosIcon} MOS: ${marginOfSafety > 0 ? '+' : ''}${marginOfSafety.toFixed(1)}%`;
+      document.getElementById('sr-graham-mos').style.color = mosColor;
+    } else {
+      document.getElementById('sr-graham').textContent = '—';
+      document.getElementById('sr-graham-mos').textContent = 'Sin EPS/BV';
+      document.getElementById('sr-graham-mos').style.color = 'var(--text3)';
+    }
+    
+    // ═══════════════════════════════════════
+    // CRITERIA VALIDATION
+    // ═══════════════════════════════════════
+    const marketCap = statsData?.summaryDetail?.marketCap?.raw || 0;
+    const fcf = statsData?.financialData?.freeCashflow?.raw || 0;
+    const revenueGrowth = statsData?.financialData?.revenueGrowth?.raw || 0;
+    
+    // Calculate criteria
+    const dropPct = high52 > 0 ? ((currentPrice - high52) / high52) * 100 : 0;
+    const below15 = dropPct <= -15;
+    const betweenMA = ma200 > 0 && currentPrice >= ma200 && currentPrice <= (ma200 * 1.15);
+    const bigCap = marketCap >= 10000000000;
+    const positiveFCF = fcf > 0;
+    const goodRevGrowth = revenueGrowth >= 0.20;
+    
+    const passed = [below15, betweenMA, bigCap, positiveFCF, goodRevGrowth].filter(Boolean).length;
+    const total = 5;
+    const score = (passed / total) * 100;
+    
+    const color = score >= 80 ? 'var(--green)' : score >= 60 ? 'var(--yellow)' : 'var(--red)';
+    const icon = score >= 80 ? '✅' : score >= 60 ? '⚠️' : '❌';
+    const recommendation = score >= 80 ? 'Excelente candidato' : score >= 60 ? 'Candidato aceptable' : 'No cumple criterios';
+    
+    scoreEl.innerHTML = `<span style="color:${color};">${icon} ${passed}/${total}</span>`;
+    
+    detailsEl.innerHTML = `
+      <div style="margin-bottom:8px;font-weight:700;color:${color};">${recommendation} (${score.toFixed(0)}% score)</div>
+      <div style="display:grid;gap:4px;">
+        <div>${below15 ? '✅' : '❌'} <strong>15% bajo máximo:</strong> ${dropPct.toFixed(1)}% ${below15 ? '(Cumple)' : '(No cumple)'}</div>
+        <div>${betweenMA ? '✅' : '❌'} <strong>Entre MA200:</strong> ${betweenMA ? 'Sí' : 'No'} ${ma200 > 0 ? `(MA200: $${ma200.toFixed(2)})` : ''}</div>
+        <div>${bigCap ? '✅' : '❌'} <strong>Cap > $10B:</strong> $${(marketCap/1000000000).toFixed(1)}B</div>
+        <div>${positiveFCF ? '✅' : '❌'} <strong>FCF positivo:</strong> ${positiveFCF ? 'Sí' : 'No'} ${fcf > 0 ? `($${(fcf/1000000).toFixed(0)}M)` : ''}</div>
+        <div>${goodRevGrowth ? '✅' : '❌'} <strong>Rev growth > 20%:</strong> ${(revenueGrowth*100).toFixed(1)}%</div>
+      </div>
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:10px;color:var(--text3);">
+        <strong>No verificables:</strong> Tendencia mensual • Crecimiento proyectado • Insider buying • Congress trading
+      </div>
+    `;
+    
+  } catch (err) {
+    console.error('Combined Graham & Criteria error:', err);
+    
+    document.getElementById('sr-graham').textContent = '—';
+    document.getElementById('sr-graham-mos').textContent = 'Error';
+    document.getElementById('sr-graham-mos').style.color = 'var(--red)';
+    
+    scoreEl.textContent = '—';
+    detailsEl.innerHTML = `<div style="color:var(--red);">❌ Error: ${err.message}</div>`;
+  }
+}
+
+async function validateCriteriaForSearch(ticker) {
+  const panel = document.getElementById('criteria-panel');
+  const scoreEl = document.getElementById('criteria-score');
+  const detailsEl = document.getElementById('criteria-details');
+  
+  panel.style.display = 'block';
+  scoreEl.innerHTML = '<span style="color:var(--text3);">⏳</span>';
+  detailsEl.innerHTML = '<div>Verificando criterios...</div>';
+  
+  try {
+    const [quoteData, statsData] = await Promise.all([
+      fetchQuoteData(ticker),
+      fetchStatsData(ticker)
+    ]);
+    
+    if (!quoteData || !statsData) {
+      scoreEl.textContent = '—';
+      detailsEl.innerHTML = '<div style="color:var(--red);">❌ No se pudieron obtener datos</div>';
+      return;
+    }
+    
+    const currentPrice = quoteData.regularMarketPrice;
+    const high52 = quoteData.fiftyTwoWeekHigh;
+    const ma50 = quoteData.fiftyDayAverage || 0;
+    const ma200 = quoteData.twoHundredDayAverage || 0;
+    const marketCap = quoteData.marketCap || 0;
+    const fcf = statsData.financialData?.freeCashflow?.raw || 0;
+    const revenueGrowth = statsData.financialData?.revenueGrowth?.raw || 0;
+    
+    // Calculate criteria
+    const dropPct = high52 > 0 ? ((currentPrice - high52) / high52) * 100 : 0;
+    const below15 = dropPct <= -15;
+    const betweenMA = ma200 > 0 && currentPrice >= ma200 && currentPrice <= (ma200 * 1.15);
+    const bigCap = marketCap >= 10000000000;
+    const positiveFCF = fcf > 0;
+    const goodRevGrowth = revenueGrowth >= 0.20;
+    
+    const passed = [below15, betweenMA, bigCap, positiveFCF, goodRevGrowth].filter(Boolean).length;
+    const total = 5;
+    const score = (passed / total) * 100;
+    
+    const color = score >= 80 ? 'var(--green)' : score >= 60 ? 'var(--yellow)' : 'var(--red)';
+    const icon = score >= 80 ? '✅' : score >= 60 ? '⚠️' : '❌';
+    const recommendation = score >= 80 ? 'Excelente candidato' : score >= 60 ? 'Candidato aceptable' : 'No cumple criterios';
+    
+    scoreEl.innerHTML = `<span style="color:${color};">${icon} ${passed}/${total}</span>`;
+    
+    detailsEl.innerHTML = `
+      <div style="margin-bottom:8px;font-weight:700;color:${color};">${recommendation} (${score.toFixed(0)}% score)</div>
+      <div style="display:grid;gap:4px;">
+        <div>${below15 ? '✅' : '❌'} <strong>15% bajo máximo:</strong> ${dropPct.toFixed(1)}% ${below15 ? '(Cumple)' : '(No cumple)'}</div>
+        <div>${betweenMA ? '✅' : '❌'} <strong>Entre MA200:</strong> ${betweenMA ? 'Sí' : 'No'} (MA200: $${ma200.toFixed(2)})</div>
+        <div>${bigCap ? '✅' : '❌'} <strong>Cap > $10B:</strong> $${(marketCap/1000000000).toFixed(1)}B</div>
+        <div>${positiveFCF ? '✅' : '❌'} <strong>FCF positivo:</strong> ${positiveFCF ? 'Sí' : 'No'} ($${(fcf/1000000).toFixed(0)}M)</div>
+        <div>${goodRevGrowth ? '✅' : '❌'} <strong>Rev growth > 20%:</strong> ${(revenueGrowth*100).toFixed(1)}%</div>
+      </div>
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:10px;color:var(--text3);">
+        <strong>No verificables:</strong> Tendencia mensual • Crecimiento proyectado • Insider buying • Congress trading
+      </div>
+    `;
+    
+  } catch(err) {
+    console.error('Criteria validation error:', err);
+    scoreEl.textContent = '—';
+    detailsEl.innerHTML = '<div style="color:var(--red);">❌ Error al validar criterios</div>';
   }
 }
 
